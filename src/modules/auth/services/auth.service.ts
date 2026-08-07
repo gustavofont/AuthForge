@@ -81,7 +81,7 @@ export class AuthService implements IAuthService {
       await this.userRepository.save(user);
     }
 
-    const tokens = await this.issueTokens(user.id, user.email, context);
+    const tokens = await this.issueTokens(user.id, user.email, user.name, context);
     this.logger.logAuthEvent('LOGIN', { userId: user.id });
     return tokens;
   }
@@ -121,6 +121,7 @@ export class AuthService implements IAuthService {
     const accessToken = this.tokenService.signAccessToken({
       sub: user.id,
       email: user.email,
+      name: user.name,
       roles,
       permissions,
     });
@@ -230,6 +231,7 @@ export class AuthService implements IAuthService {
   private async issueTokens(
     userId: string,
     email: string,
+    name: string,
     context: LoginContext,
   ): Promise<AuthTokensResponseDto> {
     const roles = await this.userRolesService.getRoleNamesForUser(userId);
@@ -251,6 +253,7 @@ export class AuthService implements IAuthService {
     const accessToken = this.tokenService.signAccessToken({
       sub: userId,
       email,
+      name,
       roles,
       permissions,
     });

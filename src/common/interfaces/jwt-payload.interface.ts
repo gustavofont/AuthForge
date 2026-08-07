@@ -1,6 +1,7 @@
 export interface AccessTokenPayload {
   sub: string;
   email: string;
+  name: string;
   roles: string[];
   permissions: string[];
   iat?: number;
@@ -17,6 +18,7 @@ export interface RefreshTokenPayload {
 export interface AuthenticatedUser {
   id: string;
   email: string;
+  name: string;
   roles: string[];
   permissions: string[];
 }

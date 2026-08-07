@@ -26,6 +26,7 @@ describe('TokenService', () => {
     const token = service.signAccessToken({
       sub: 'user-1',
       email: 'jane@example.com',
+      name: 'Jane Doe',
       roles: ['ADMIN'],
       permissions: ['create_user'],
     });
