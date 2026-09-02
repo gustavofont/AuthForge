@@ -34,6 +34,10 @@ describe('AuthService', () => {
 
   const hashSecretMock = hashUtil.hashSecret as jest.Mock;
   const verifySecretMock = hashUtil.verifySecret as jest.Mock;
+  // resetPassword() now validates the id half of the composite token is a
+  // real uuid before querying (the column is uuid-typed) — fixtures need a
+  // realistic id, not an arbitrary string like the old 'reset-1'.
+  const RESET_TOKEN_ID = '11111111-1111-4111-8111-111111111111';
 
   const buildUser = (overrides: Partial<User> = {}): User => ({
     id: 'user-1',
@@ -286,9 +290,16 @@ describe('AuthService', () => {
       ).rejects.toThrow(InvalidResetTokenException);
     });
 
+    it('rejects a token whose id half is not a uuid, without querying the DB', async () => {
+      await expect(
+        service.resetPassword({ token: 'bogus-id.some-secret', newPassword: 'X' }),
+      ).rejects.toThrow(InvalidResetTokenException);
+      expect(passwordResetTokenRepository.findById).not.toHaveBeenCalled();
+    });
+
     it('rejects an expired or already-used token', async () => {
       passwordResetTokenRepository.findById.mockResolvedValue({
-        id: 'reset-1',
+        id: RESET_TOKEN_ID,
         userId: 'user-1',
         tokenHash: 'hash',
         expiresAt: new Date(Date.now() - 1000),
@@ -297,13 +308,13 @@ describe('AuthService', () => {
       } as PasswordResetToken);
 
       await expect(
-        service.resetPassword({ token: 'reset-1.secret', newPassword: 'NewPassw0rd' }),
+        service.resetPassword({ token: `${RESET_TOKEN_ID}.secret`, newPassword: 'NewPassw0rd' }),
       ).rejects.toThrow(InvalidResetTokenException);
     });
 
     it('resets the password and revokes all sessions on success', async () => {
       passwordResetTokenRepository.findById.mockResolvedValue({
-        id: 'reset-1',
+        id: RESET_TOKEN_ID,
         userId: 'user-1',
         tokenHash: 'hash',
         expiresAt: new Date(Date.now() + 60_000),
@@ -312,7 +323,10 @@ describe('AuthService', () => {
       } as PasswordResetToken);
       userRepository.findById.mockResolvedValue(buildUser());
 
-      await service.resetPassword({ token: 'reset-1.secret', newPassword: 'NewPassw0rd' });
+      await service.resetPassword({
+        token: `${RESET_TOKEN_ID}.secret`,
+        newPassword: 'NewPassw0rd',
+      });
 
       expect(userRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ passwordHash: 'hashed(NewPassw0rd)' }),

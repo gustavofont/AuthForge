@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { isUUID } from 'class-validator';
 import {
   AccountInactiveException,
   AccountLockedException,
@@ -186,7 +187,11 @@ export class AuthService implements IAuthService {
 
   async resetPassword(dto: ResetPasswordDto): Promise<void> {
     const [id, secret] = dto.token.split('.');
-    if (!id || !secret) {
+    // isUUID guards the DB lookup below — the id half is a uuid column, so a
+    // malformed id (a garbled/tampered link) would otherwise reach Postgres
+    // as an invalid literal and surface as an unhandled 500 instead of the
+    // clean 400 this method already returns for every other bad-token case.
+    if (!id || !secret || !isUUID(id)) {
       throw new InvalidResetTokenException();
     }
 
