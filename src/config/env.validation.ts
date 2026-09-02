@@ -49,6 +49,14 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   REFRESH_SECRET?: string;
+
+  @IsOptional()
+  @IsString()
+  FRONTEND_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  RABBITMQ_URL?: string;
 }
 
 /**

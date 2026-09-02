@@ -119,6 +119,9 @@ describe('AuthService', () => {
             loginThrottleTtlSeconds: 60,
           };
         }
+        if (key === 'app') {
+          return { frontendUrl: 'http://localhost:5173' };
+        }
         throw new Error(`unexpected config key ${key}`);
       },
     } as unknown as ConfigService<AppConfig, true>;

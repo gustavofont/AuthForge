@@ -170,10 +170,15 @@ export class AuthService implements IAuthService {
     });
 
     const compositeToken = `${resetToken.id}.${secret}`;
+    const frontendUrl = this.configService.get('app', { infer: true }).frontendUrl;
+    const resetLink = `${frontendUrl}/reset-password?token=${compositeToken}`;
+    const expiration = `${ttlMinutes} minutes`;
     await this.emailService.sendMail({
       to: user.email,
       subject: 'Reset your password',
-      body: `Use the following token to reset your password (expires in ${ttlMinutes} minutes): ${compositeToken}`,
+      body: `Use the following link to reset your password (expires in ${expiration}): ${resetLink}`,
+      type: 'forgot-password',
+      context: { name: user.name, resetLink, expiration },
     });
 
     this.logger.logAuthEvent('FORGOT_PASSWORD', { userId: user.id });

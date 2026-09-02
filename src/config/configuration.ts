@@ -4,6 +4,7 @@ export interface AppConfig {
     port: number;
     env: string;
     corsOrigins: string[];
+    frontendUrl: string;
   };
   database: {
     host: string;
@@ -32,6 +33,9 @@ export interface AppConfig {
     accountLockMinutes: number;
     passwordResetTokenTtlMinutes: number;
   };
+  rabbitmq: {
+    url: string;
+  };
 }
 
 const toList = (value: string | undefined): string[] =>
@@ -46,6 +50,7 @@ export default (): AppConfig => ({
     port: parseInt(process.env.PORT ?? '3000', 10),
     env: process.env.NODE_ENV ?? 'development',
     corsOrigins: toList(process.env.CORS_ORIGINS),
+    frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:5173',
   },
   database: {
     host: process.env.POSTGRES_HOST ?? 'localhost',
@@ -76,5 +81,8 @@ export default (): AppConfig => ({
       process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES ?? '60',
       10,
     ),
+  },
+  rabbitmq: {
+    url: process.env.RABBITMQ_URL ?? 'amqp://guest:guest@localhost:5672',
   },
 });
