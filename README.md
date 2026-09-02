@@ -7,7 +7,7 @@ Generic, reusable Authentication & Authorization microservice built with NestJS,
 - JWT access + refresh tokens (refresh rotates on every use), Argon2 password hashing
 - Sessions per login (device, IP, hashed refresh token, expiry) with list/revoke/revoke-all
 - RBAC: roles, permissions, role→permission and user→role assignments, `@Roles()`/`@Permissions()` guards
-- Password change / forgot / reset flows, with an `EmailProvider` abstraction (console-logging stub by default)
+- Password change / forgot / reset flows, with a swappable `EmailProvider` abstraction — publishes to a RabbitMQ mail queue by default (`MailForgeEmailProvider`, consumed by the sibling MailForge service); a console-logging stub (`ConsoleEmailProvider`) ships alongside it for running without RabbitMQ configured
 - Account lockout after repeated failed logins, throttling on `/auth/login`, Helmet, CORS, global validation
 - Centralized error handling (no internal errors leaked) and centralized logging
 - Swagger docs, TypeORM migrations, Jest unit tests, Docker/Docker Compose
@@ -75,7 +75,7 @@ src/
     roles/          role CRUD, permission assignment
     permissions/   permission CRUD + the Role↔Permission↔User join entities (RolePermission, UserRole)
     sessions/       session listing/revocation
-    email/          EmailProvider abstraction + console stub
+    email/          EmailProvider abstraction; MailForgeEmailProvider (default, RabbitMQ) and ConsoleEmailProvider (stub) implementations
 ```
 
 Each module keeps its own controllers/services/repositories/entities/dtos/interfaces; cross-module RBAC lookups go through exported service interfaces (`IUserRolesService`, `IRolePermissionsService`), not raw repositories.
@@ -86,3 +86,4 @@ Each module keeps its own controllers/services/repositories/entities/dtos/interf
 - **JWT signing is HS256 by default**; setting `JWT_PUBLIC_KEY`/`JWT_PRIVATE_KEY` switches to RS256 with no code changes.
 - **`PATCH /users/:id`** with `{"isActive": false}` deactivates a user (blocks login); **`DELETE /users/:id`** soft-deletes the record.
 - Endpoints beyond the original spec, added because RBAC/password-change had no route otherwise: `POST /auth/change-password`, `POST/DELETE /users/:id/roles(/:roleId)`, `POST/DELETE /roles/:id/permissions(/:permissionId)`.
+- **Forgot/reset-password emails go out via RabbitMQ**, not directly over SMTP — `MailForgeEmailProvider` publishes to a `mail.queue` that a sibling MailForge service consumes and actually sends (same generic, template-driven mail service other projects in this ecosystem share). Needs `RABBITMQ_URL` pointed at a reachable broker and `FRONTEND_URL` set (used to build the link embedded in the email) — see `.env.example`. Without a broker reachable, publishing fails silently (best-effort, matches `POST /auth/forgot-password` always returning 200 regardless of delivery).
